@@ -121,12 +121,18 @@ def test_GNN(distribution,model):
                                                 batched=batched, max_batch_size=max_batch_size,
                                                 )
     
-    
-    for res, label in zip([results, results_raw, history],
-                                          ["results", "results_raw", "history"]):
+    for res, label in zip([results],
+                          ["results"]):
         save_path = os.path.join(data_folder, label)
         res.to_pickle(save_path)
         print("{} saved to {}".format(label, save_path))
+    
+    
+    # for res, label in zip([results, results_raw, history],
+    #                                       ["results", "results_raw", "history"]):
+    #     save_path = os.path.join(data_folder, label)
+    #     res.to_pickle(save_path)
+    #     print("{} saved to {}".format(label, save_path))
     
 
 if __name__ == '__main__':
