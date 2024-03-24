@@ -56,10 +56,6 @@ class ReplayBuffer:
         self._memory[self._position] = Transition(*args)
         self._position = (self._position + 1) % self._capacity
         
-    # def to_device_and_batch(self,data, device):
-    #     return Batch.from_data_list(data, follow_batch=None, exclude_keys=None)
-
-
 
 
     def _prepare_sample(self, batch_size, device=None):
@@ -71,13 +67,6 @@ class ReplayBuffer:
 
         self.next_batch = [torch.stack(tensors) if torch.is_tensor(tensors[0]) else 
                            tensors for tensors in zip(*batch)]
-        
-        # self.next_batch = [torch.stack(tensors).to(device) if torch.is_tensor(tensors[0]) else 
-        #                    [tensor.to(device) for tensor in tensors] for tensors in zip(*batch)]
-        # self.next_batch[0] = self.to_device_and_batch(self.next_batch[0], device)
-        # self.next_batch[-2] = self.to_device_and_batch(self.next_batch[-2], device)
-
-       
         self.next_batch_ready = True
 
     def launch_sample(self, *args):

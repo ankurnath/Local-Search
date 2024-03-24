@@ -17,6 +17,7 @@ from src.agents.dqn.utils import ReplayBuffer, Logger, TestMetric, set_global_se
 from src.envs.utils import ExtraAction
 
 from torch_geometric.data import Batch
+import time
 # from torch_geometric.nn.pool import global_max_pool
 
 
@@ -207,7 +208,9 @@ class DQN:
         for param in self.target_network.parameters():
             param.requires_grad = False
 
-        self.optimizer = optim.Adam(self.network.parameters(), lr=self.initial_learning_rate, eps=self.adam_epsilon,
+        self.optimizer = optim.Adam(self.network.parameters(), 
+                                    lr=self.initial_learning_rate, 
+                                    eps=self.adam_epsilon,
                                     weight_decay=self.weight_decay)
 
         self.evaluate = evaluate
@@ -318,7 +321,7 @@ class DQN:
                 
                 # Update the main network
                 if timestep % self.update_frequency == 0:
-                    # start_time = time.perf_counter()
+                    start_time = time.perf_counter()
                     # Sample a batch of transitions
                     
                     transitions = self.replay_buffer.sample(self.minibatch_size, self.device)
@@ -330,9 +333,9 @@ class DQN:
 
                     if self.logging:
                         logger.add_scalar('Loss', loss, timestep)
-                    # end_time = time.perf_counter()
+                    end_time = time.perf_counter()
 
-                    # elapsed_time = end_time - start_time
+                    elapsed_time = end_time - start_time
 
                     # print(f"Elapsed Time to update the main network: {elapsed_time} seconds")
 
@@ -342,12 +345,12 @@ class DQN:
                     self.target_network.load_state_dict(self.network.state_dict())
 
             if (timestep+1) % self.test_frequency == 0 and self.evaluate and is_training_ready:
-                # start_time = time.perf_counter()
+                start_time = time.perf_counter()
                 test_score = self.evaluate_agent()
-                # end_time = time.perf_counter()
+                end_time = time.perf_counter()
 
-                # elapsed_time = end_time - start_time
-                # print(f"Elapsed Time to evalute network: {elapsed_time} seconds")
+                elapsed_time = end_time - start_time
+                print(f"Elapsed Time to evalute network: {elapsed_time} seconds")
                 print('\nTest score: {}\n'.format(np.round(test_score,3)))
 
                 if self.test_metric in [TestMetric.FINAL_CUT,TestMetric.MAX_CUT,TestMetric.CUMULATIVE_REWARD,TestMetric.KNAPSACK,TestMetric.MAXSAT,TestMetric.MAXCOVER]:
@@ -400,24 +403,32 @@ class DQN:
         return True if q_next < 0 else False
     
     @staticmethod
-    def get_greedy_actions(pred,batch):
+    def get_greedy_actions(pred=None,batch=None,offset=True):
+        # print(batch)
             
-            num_graphs = batch.max().item() + 1
-            graph_sortidx=torch.argsort(batch).type(torch.int64)
-            graph_ids, graph_counts = torch.unique_consecutive(batch[graph_sortidx],
-                                                            return_counts=True)
-            
-            end_indices = torch.cumsum(graph_counts, dim=0).cpu().tolist()
-            start_indices = [0] + end_indices[:-1]
-            greedy_actions=torch.zeros((num_graphs,), dtype=torch.int).type(torch.int64)
-            
-            for graph_id, a, b in zip(graph_ids, start_indices, end_indices):
-                indices = graph_sortidx[a:b]
-                greedy_actions[graph_id] = indices[torch.argmax(pred[indices])]
+        num_graphs = batch[-1].item() + 1
+        # graph_sortidx=torch.argsort(batch).type(torch.int64)
+        graph_ids, graph_counts = torch.unique_consecutive(batch,
+                                                           return_counts=True)
+        
+        end_indices = torch.cumsum(graph_counts, dim=0).cpu().tolist()
+        start_indices = [0] + end_indices[:-1]
+        greedy_actions = torch.zeros((num_graphs,), dtype=torch.int64)
+        
+        for graph_id, a, b in zip(graph_ids, start_indices, end_indices):
+            # indices = graph_sortidx[a:b]
+            # print(indices)
+            # print(x)
+            # greedy_actions[graph_id] = indices[torch.argmax(pred[indices])]
+            if offset:
+                greedy_actions[graph_id] = torch.argmax(pred[a:b])+a
+            else:
+                greedy_actions[graph_id] = torch.argmax(pred[a:b])
 
-            # assert torch.equal(global_max_pool(pred,batch),pred[greedy_actions])
-                
-            return greedy_actions
+
+        # assert torch.equal(global_max_pool(pred,batch),pred[greedy_actions])
+            
+        return greedy_actions
 
     def train_step(self, transitions):
 
@@ -560,27 +571,14 @@ class DQN:
         qs = self.network(states.to(self.device))
 
         if acting_in_reversible_spin_env:
-#             if qs.dim() == 1:
-#                 actions=DQN.get_greedy_actions(qs,states.batch)
-# #                 actions = qs.argmax().item()
-            
-#             else:
-            actions=DQN.get_greedy_actions(qs,states.batch)
-#                 actions = qs.argmax(1, True).squeeze(1).cpu().numpy()
+            actions=DQN.get_greedy_actions(qs,states.batch,offset=False)
             return actions
         else:
-            # if qs.dim() == 1:
-            #     x = (states.x[:,0] == self.allowed_action_state).nonzero()
-            #     actions = x[qs[x].argmax().item()].item()
-            # else:
             disallowed_actions_mask = (states.x[:, 0] != self.allowed_action_state).unsqueeze(-1)
             qs_allowed = qs.masked_fill(disallowed_actions_mask, -10000)
-            actions=DQN.get_greedy_actions(qs_allowed,states.batch)
-
-                # print(actions)
+            actions=DQN.get_greedy_actions(qs_allowed,states.batch,offset=False)
             if torch.is_tensor(actions):
                 actions=actions.cpu()
-#                 actions = qs_allowed.argmax(1, True).squeeze(1).cpu().numpy()
             return actions
 
     @torch.no_grad()
@@ -590,7 +588,7 @@ class DQN:
         so the network predictions can be done in batches.
         """
 
-        # print('Started evalution')
+        print('Started evalution')
         # print('Test episodes',self.test_episodes)
         if batch_size is None:
             batch_size = self.minibatch_size
@@ -637,24 +635,24 @@ class DQN:
             
             # num_graphs = graph_batch.batch.max().item() + 1
             # graph_sortidx=torch.argsort(graph_batch.batch)
-            _, graph_counts = torch.unique_consecutive(graph_batch.batch,
-                                                            return_counts=True)
+            # _, graph_counts = torch.unique_consecutive(graph_batch.batch,
+            #                                                 return_counts=True)
             
-            end_indices = torch.cumsum(graph_counts, dim=0).cpu().tolist()
-            start_indices = [0] + end_indices[:-1]
+            # end_indices = torch.cumsum(graph_counts, dim=0).cpu().tolist()
+            # start_indices = [0] + end_indices[:-1]
 
 
             
             try:
                 action_iter = iter(actions)
-                start_indices_iter = iter(start_indices) 
+                # start_indices_iter = iter(start_indices) 
             except:
                 action_iter = iter([actions])
-                start_indices_iter = iter(start_indices)
+                # start_indices_iter = iter(start_indices)
                 
 
             for i, test_env in enumerate(test_envs):
-                actions_envs[i] = next(action_iter)-next(start_indices_iter) if test_env is not None else None
+                actions_envs[i] = next(action_iter) if test_env is not None else None
 
 
 
