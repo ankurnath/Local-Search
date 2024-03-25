@@ -194,6 +194,7 @@ class GraphDataset(object):
         super().__init__()
 
         self.file_paths=glob.glob(f'{folder_path}/*.npz')
+        self.file_paths.sort()
         self.ordered=ordered
 
         if self.ordered:
