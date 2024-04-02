@@ -126,6 +126,8 @@ def test_GNN(distribution,model):
         save_path = os.path.join(data_folder, label)
         res.to_pickle(save_path)
         print("{} saved to {}".format(label, save_path))
+
+    print(results['cut'].tolist())
     
     
     # for res, label in zip([results, results_raw, history],

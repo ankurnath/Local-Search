@@ -411,8 +411,14 @@ class DQN:
         graph_ids, graph_counts = torch.unique_consecutive(batch,
                                                            return_counts=True)
         
+        # if not offset:
+        
+        #     print(graph_counts)
+        
         end_indices = torch.cumsum(graph_counts, dim=0).cpu().tolist()
         start_indices = [0] + end_indices[:-1]
+        # if not offset:
+        #     print(start_indices)
         greedy_actions = torch.zeros((num_graphs,), dtype=torch.int64)
         
         for graph_id, a, b in zip(graph_ids, start_indices, end_indices):
@@ -424,9 +430,17 @@ class DQN:
                 greedy_actions[graph_id] = torch.argmax(pred[a:b])+a
             else:
                 greedy_actions[graph_id] = torch.argmax(pred[a:b])
+        
+        # if not offset:
+        #     print('Size of graphs',graph_counts)
+        #     print('Greedy actions',greedy_actions)
 
 
         # assert torch.equal(global_max_pool(pred,batch),pred[greedy_actions])
+        # if not offset:
+        
+        #     print(greedy_actions)
+        
             
         return greedy_actions
 
@@ -600,9 +614,11 @@ class DQN:
 
         test_envs = np.array([None]*batch_size)
         
-        actions_envs=np.array([None]*batch_size)
+        # actions_envs=np.array([None]*batch_size)
         obs_batch = []
+        mapping={}
         # flag=True
+        
 
         while i_comp < self.test_episodes:
 
@@ -615,44 +631,41 @@ class DQN:
                     new_obs = self.test_env.reset(test=True)
                     # print(new_obs)
                     test_env = deepcopy(self.test_env)
-                    test_env.test()
+                    # test_env.test()
 
                     test_envs[i] = test_env
+                    
                     obs_batch.append(new_obs)
+                    mapping[i]=len(obs_batch)-1
 
                     i_test += 1
 
-#             actions = self.predict(torch.FloatTensor(np.array(obs_batch)).to(self.device),
-#                                    testing_in_reversible_spin_env)
 
             graph_batch=Batch.from_data_list(obs_batch, follow_batch=None, exclude_keys=None).to(self.device)
             # print(graph_batch.batch)
+            # print('*'*20)
+            # for temp in test_envs:
+            #     try:
+            #         print(temp.n_spins,end=',')
+            #     except:
+            #         print('None',end=',')
+            # print()
             
             actions = self.predict(graph_batch,self.test_env.reversible_spins)
 
             if torch.is_tensor(actions):
                 actions=actions.tolist()
-            
-            # num_graphs = graph_batch.batch.max().item() + 1
-            # graph_sortidx=torch.argsort(graph_batch.batch)
-            # _, graph_counts = torch.unique_consecutive(graph_batch.batch,
-            #                                                 return_counts=True)
-            
-            # end_indices = torch.cumsum(graph_counts, dim=0).cpu().tolist()
-            # start_indices = [0] + end_indices[:-1]
 
-
-            
-            try:
-                action_iter = iter(actions)
-                # start_indices_iter = iter(start_indices) 
-            except:
-                action_iter = iter([actions])
-                # start_indices_iter = iter(start_indices)
+            # try:
+            #     action_iter = iter(actions)
+            #     # start_indices_iter = iter(start_indices) 
+            # except:
+            #     action_iter = iter([actions])
+            #     # start_indices_iter = iter(start_indices)
                 
 
-            for i, test_env in enumerate(test_envs):
-                actions_envs[i] = next(action_iter) if test_env is not None else None
+            # for i, test_env in enumerate(test_envs):
+            #     actions_envs[i] = next(action_iter) if test_env is not None else None
 
 
 
@@ -660,21 +673,29 @@ class DQN:
 
             i = 0
 
-
-            # if flag:
-            #     start_time=time.perf_counter()
-            
-            # for env, action in zip(test_envs, actions):
-            for env, action in zip(test_envs, actions_envs):
-
-
+            # for env, action in zip(test_envs, actions_envs):
+            for idx,env in enumerate(test_envs):
                 if env is not None:
+
+                    # if env.n_spins<action+1:
+
+                    #     for temp in test_envs:
+                    #         try:
+                    #             print(temp.n_spins,end=',')
+                    #         except:
+                    #             print('None',end=',')
+                    #     print('')
+                    #     print('Number of vertices',env.n_spins)
+                    #     print('action',action)
+                    #     raise ValueError('Wrong Environment')
+                    action=actions[mapping[idx]]
                     obs, rew, done, info = env.step(action)
 
                     if self.test_metric == TestMetric.CUMULATIVE_REWARD:
                         batch_scores[i] += rew
 
                     if done:
+                        # print('DONE')
                         if self.test_metric == TestMetric.BEST_ENERGY:
                             batch_scores[i] = env.best_energy
                         elif self.test_metric == TestMetric.ENERGY_ERROR:
@@ -709,7 +730,9 @@ class DQN:
                         i_comp += 1
                         test_envs[i] = None
                     else:
+
                         obs_batch.append(obs)
+                        mapping[idx]=len(obs_batch)-1
 
                 i += 1
 
