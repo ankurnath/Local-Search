@@ -129,7 +129,7 @@ def train_GNN(distribution,number_of_vertices,model):
     if number_of_vertices in train_config['test_frequency']:
         config_load=number_of_vertices
     else:
-        config_load=100
+        config_load=200
         
     print('Configuration load:',config_load)
     nb_steps=int(train_config['nb_steps'][config_load])
