@@ -130,118 +130,126 @@ def train_GNN(distribution,number_of_vertices,model):
         config_load=number_of_vertices
     else:
         config_load=200
+
+
+    if os.path.isfile(os.path.join(network_folder,"loss.png")):
+        print('Training completed')
+
+    else:
+        print('Training')
+
         
-    print('Configuration load:',config_load)
-    nb_steps=int(train_config['nb_steps'][config_load])
-    agent = DQN(train_env,
+        print('Configuration load:',config_load)
+        nb_steps=int(train_config['nb_steps'][config_load])
+        agent = DQN(train_env,
 
-                network_fn,
+                    network_fn,
 
-                init_network_params=None,
-                init_weight_std=0.01,
+                    init_network_params=None,
+                    init_weight_std=0.01,
 
-                double_dqn=True,
-                clip_Q_targets=clip_Q_targets[model],
+                    double_dqn=True,
+                    clip_Q_targets=clip_Q_targets[model],
 
-                replay_start_size=train_config["replay_start_size"][config_load],
-                replay_buffer_size=train_config["replay_buffer_size"][config_load],  # 20000
-                gamma=gammas[model],  # 1
-                update_target_frequency=train_config["update_target_frequency"][config_load],  # 500
+                    replay_start_size=train_config["replay_start_size"][config_load],
+                    replay_buffer_size=train_config["replay_buffer_size"][config_load],  # 20000
+                    gamma=gammas[model],  # 1
+                    update_target_frequency=train_config["update_target_frequency"][config_load],  # 500
 
-                update_learning_rate=False,
-                initial_learning_rate=1e-4,
-                peak_learning_rate=1e-4,
-                peak_learning_rate_step=20000,
-                final_learning_rate=1e-4,
-                final_learning_rate_step=200000,
-
-
-                update_frequency=32,  # 1
-                minibatch_size=16,  # 128
-    #                             minibatch_size=8,  # 128
-                max_grad_norm=None,
-                weight_decay=0,
-
-                update_exploration=True,
-                initial_exploration_rate=1,
-                final_exploration_rate=0.05,  # 0.05
-                final_exploration_step=train_config['final_exploration_step'][config_load],  # 40000
-
-                adam_epsilon=1e-8,
-                logging=False,
-                loss="mse",
-
-                save_network_frequency=train_config['save_network_frequency'][config_load],
-                network_save_path=network_save_path,
-
-                evaluate=True,
-                test_env=test_env,
-                test_episodes=n_tests,
-                test_frequency=train_config['test_frequency'][config_load],  # 10000
-                test_save_path=test_save_path,
-                test_metric=TestMetric.MAX_CUT,
-
-                seed=None
-                )
+                    update_learning_rate=False,
+                    initial_learning_rate=1e-4,
+                    peak_learning_rate=1e-4,
+                    peak_learning_rate_step=20000,
+                    final_learning_rate=1e-4,
+                    final_learning_rate_step=200000,
 
 
+                    update_frequency=32,  # 1
+                    minibatch_size=16,  # 128
+        #                             minibatch_size=8,  # 128
+                    max_grad_norm=None,
+                    weight_decay=0,
 
-    print(f'Started {model} Training for graph {distribution}')
-    import time
-    start = time.time()
-    agent.learn(timesteps=nb_steps, verbose=False)
-    agent.save()
-    print(time.time() - start)
+                    update_exploration=True,
+                    initial_exploration_rate=1,
+                    final_exploration_rate=0.05,  # 0.05
+                    final_exploration_step=train_config['final_exploration_step'][config_load],  # 40000
+
+                    adam_epsilon=1e-8,
+                    logging=False,
+                    loss="mse",
+
+                    save_network_frequency=train_config['save_network_frequency'][config_load],
+                    network_save_path=network_save_path,
+
+                    evaluate=True,
+                    test_env=test_env,
+                    test_episodes=n_tests,
+                    test_frequency=train_config['test_frequency'][config_load],  # 10000
+                    test_save_path=test_save_path,
+                    test_metric=TestMetric.MAX_CUT,
+
+                    seed=None
+                    )
 
 
 
-    ############
-    # PLOT - learning curve
-    ############
-    data = pickle.load(open(test_save_path,'rb'))
-    data = np.array(data)
-
-    fig_fname = os.path.join(network_folder,"training_curve")
-
-    plt.figure(dpi=200)
-    plt.plot(data[:,0],data[:,1])
-
-    plt.xlabel("Timestep")
-    plt.ylabel("Mean reward")
-    plt.grid(True)
+        print(f'Started {model} Training for graph {distribution}')
+        import time
+        start = time.time()
+        agent.learn(timesteps=nb_steps, verbose=False)
+        agent.save()
+        print(time.time() - start)
 
 
-    plt.ylabel("Max Cut")
+
+        ############
+        # PLOT - learning curve
+        ############
+        data = pickle.load(open(test_save_path,'rb'))
+        data = np.array(data)
+
+        fig_fname = os.path.join(network_folder,"training_curve")
+
+        plt.figure(dpi=200)
+        plt.plot(data[:,0],data[:,1])
+
+        plt.xlabel("Timestep")
+        plt.ylabel("Mean reward")
+        plt.grid(True)
 
 
-    plt.savefig(fig_fname + ".png", bbox_inches='tight')
-    plt.savefig(fig_fname + ".pdf", bbox_inches='tight')
-
-    # plt.clf()
-
-    ############
-    # PLOT - losses
-    ############
-    data = pickle.load(open(loss_save_path,'rb'))
-    data = np.array(data)
-
-    fig_fname = os.path.join(network_folder,"loss")
-
-    N=50
-    data_x = np.convolve(data[:,0], np.ones((N,))/N, mode='valid')
-    data_y = np.convolve(data[:,1], np.ones((N,))/N, mode='valid')
+        plt.ylabel("Max Cut")
 
 
-    plt.figure(dpi=200)
-    plt.plot(data_x,data_y)
-    plt.xlabel("Timestep")
-    plt.ylabel("Loss")
+        plt.savefig(fig_fname + ".png", bbox_inches='tight')
+        plt.savefig(fig_fname + ".pdf", bbox_inches='tight')
 
-    plt.yscale("log")
-    plt.grid(True)
+        # plt.clf()
 
-    plt.savefig(fig_fname + ".png", bbox_inches='tight')
-    plt.savefig(fig_fname + ".pdf", bbox_inches='tight')
+        ############
+        # PLOT - losses
+        ############
+        data = pickle.load(open(loss_save_path,'rb'))
+        data = np.array(data)
+
+        fig_fname = os.path.join(network_folder,"loss")
+
+        N=50
+        data_x = np.convolve(data[:,0], np.ones((N,))/N, mode='valid')
+        data_y = np.convolve(data[:,1], np.ones((N,))/N, mode='valid')
+
+
+        plt.figure(dpi=200)
+        plt.plot(data_x,data_y)
+        plt.xlabel("Timestep")
+        plt.ylabel("Loss")
+
+        plt.yscale("log")
+        plt.grid(True)
+
+        plt.savefig(fig_fname + ".png", bbox_inches='tight')
+        plt.savefig(fig_fname + ".pdf", bbox_inches='tight')
     
     
     
