@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--distribution", type=str, help="Distribution of dataset")
     parser.add_argument("--num_repeat", type=int,default=100, help="Distribution of dataset")
-    parser.add_argument("--gamma", type=int, default=20, help="Tabu Tenure")
+    parser.add_argument("--gamma", type=int, default=50, help="Tabu Tenure")
     args = parser.parse_args()
 
     save_folder=f'pretrained agents/{args.distribution}_heuristics/data'
@@ -206,7 +206,8 @@ if __name__ == '__main__':
     mca_cuts=[]
     sg_cuts=[]
 
-    for i in range(len(test_dataset)):
+    # for i in range(min(len(test_dataset),100)):
+    for i in range(min(len(test_dataset),100)):
         graph=test_dataset.get()
         g=flatten_graph(graph)
 
