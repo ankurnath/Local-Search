@@ -168,6 +168,11 @@ def __test_network_batched(network, env_args, graphs_test, device=None, step_fac
             t_start = time.time()
 
             # pool = mp.Pool(processes=16)
+            # print(obs_batch[0].x)
+
+            if not isinstance(obs_batch,list):
+                raise ValueError('Not a list')
+            
 
             k = 0
             while i_comp_batch < batch_size:
@@ -176,8 +181,13 @@ def __test_network_batched(network, env_args, graphs_test, device=None, step_fac
                 # see: https://github.com/pytorch/pytorch/issues/13918
                 # Hence, here we convert a list of np arrays to a np array.
                 # obs_batch = torch.FloatTensor(np.array(obs_batch)).to(device)
-                obs_batch =Batch.from_data_list(obs_batch, follow_batch=None, exclude_keys=None).to(device)
+                # print(i_comp_batch)
+                # print(obs_batch)
+                # print(len(obs_batch))
+                assert len(obs_batch)+i_comp_batch==batch_size
+                obs_batch =Batch.from_data_list(data_list=obs_batch, follow_batch=None, exclude_keys=None).to(device)
                 actions = predict(obs_batch)
+                # print(len(actions))
                 if torch.is_tensor(actions):
                     actions=actions.tolist()
                 _, graph_counts = torch.unique_consecutive(obs_batch.batch,
@@ -191,10 +201,17 @@ def __test_network_batched(network, env_args, graphs_test, device=None, step_fac
                     scores = []
                     rewards = []
 
+                for i,offset in enumerate(start_indices):
+                    actions[i]-=offset
+
+                actions_iter=iter(actions)
                 i = 0
-                for env, action in zip(test_envs,actions):
-                    action=action-start_indices[i]
+            
+                # for env, action in zip(test_envs,actions):
+                for env in test_envs:
+                    # action=action-start_indices[i]
                     if env is not None:
+                        action=next(actions_iter)
 
                         obs, rew, done, info = env.step(action)
 
@@ -266,10 +283,14 @@ def __test_network_batched(network, env_args, graphs_test, device=None, step_fac
                             best_cuts, best_spins
                             ])
 
+        # if return_history:
+        #     history.append([np.array(actions_history).T.tolist(),
+        #                     np.array(scores_history).T.tolist(),
+        #                     np.array(rewards_history).T.tolist()])
         if return_history:
-            history.append([np.array(actions_history).T.tolist(),
-                            np.array(scores_history).T.tolist(),
-                            np.array(rewards_history).T.tolist()])
+            history.append([actions_history,
+                            scores_history,
+                            rewards_history])
 
 
     
