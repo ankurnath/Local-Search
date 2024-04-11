@@ -121,9 +121,13 @@ def test_GNN(train_distribution,test_distribution,model):
                                                 batched=batched, max_batch_size=max_batch_size,
                                                 )
     
+
+    save_folder=f'generalization/{train_distribution}_{model}'
+    mk_dir(save_folder)
+    
     for res, label in zip([results],
                           [f"results_{test_distribution}"]):
-        save_path = os.path.join(data_folder, label)
+        save_path = os.path.join(save_folder, label)
         res.to_pickle(save_path)
         print("{} saved to {}".format(label, save_path))
 
