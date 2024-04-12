@@ -124,7 +124,7 @@ if __name__ == '__main__':
             temp_args=[]
             for tabu_tenure in range(args.low,args.high):
                 temp_args.append((g,spins.copy(),tabu_tenure,graph.shape[0]*2))
-            with Pool(256) as pool:
+            with Pool(200) as pool:
                 results=pool.starmap(tabu, temp_args)
             temp.append(results)
         temp=np.array(temp) # num_repeat,tabu_tenure
