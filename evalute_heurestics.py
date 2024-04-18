@@ -4,6 +4,7 @@ import os
 from src.envs.utils import GraphDataset
 import pandas as pd
 import pickle
+from multiprocessing.pool import Pool
 
 
 @njit
@@ -88,7 +89,8 @@ def standard_greedy(graph):
                 flag=True
                 break
                   
-    return curr_score,spins
+    # return curr_score,spins
+    return curr_score
 
 
 
@@ -134,7 +136,8 @@ def mca(graph,spins):
             flag=True
             break
                   
-    return curr_score,spins
+    # return curr_score,spins
+    return curr_score
 
 @njit
 def tabu(graph,spins,tabu_tenure,max_steps):
@@ -177,7 +180,8 @@ def tabu(graph,spins,tabu_tenure,max_steps):
 
                 
         best_score=max(curr_score,best_score)
-    return best_score,None
+    # return best_score,None
+    return best_score
 
 from argparse import ArgumentParser
 
@@ -207,22 +211,35 @@ if __name__ == '__main__':
     sg_cuts=[]
 
     # for i in range(min(len(test_dataset),100)):
-    for i in range(min(len(test_dataset),100)):
+    # for i in range(min(len(test_dataset),100)):
+    for i in range(len(test_dataset)):
         graph=test_dataset.get()
         g=flatten_graph(graph)
 
-        best_tabu_cut=0
-        best_mca_cut=0
-        
+        # best_tabu_cut=0
+        # best_mca_cut=0
+
+        tabu_arguments=[]
+        mca_arguments=[]
         for _ in range(args.num_repeat):
             spins= np.random.randint(2, size=graph.shape[0])
+            tabu_arguments.append((g,spins,args.gamma,graph.shape[0]*2))
+            mca_arguments.append((g,spins,args.gamma,graph.shape[0]*2))
 
-            tabu_cut,_=tabu(g,spins.copy(),tabu_tenure=args.gamma,max_steps=graph.shape[0]*2)
+        with Pool() as pool:
+            best_tabu_cut=np.max(pool.starmap(tabu, tabu_arguments))
+        with Pool() as pool:
+            best_mca_cut=np.max(pool.starmap(tabu, mca_arguments))
+        
+        # for _ in range(args.num_repeat):
+        #     spins= np.random.randint(2, size=graph.shape[0])
+
+        #     tabu_cut,_=tabu(g,spins.copy(),tabu_tenure=args.gamma,max_steps=graph.shape[0]*2)
             
-            best_tabu_cut=max(best_tabu_cut,tabu_cut)
+        #     best_tabu_cut=max(best_tabu_cut,tabu_cut)
 
-            mca_cut,_=mca(g,spins.copy())
-            best_mca_cut=max(mca_cut,best_mca_cut)
+        #     mca_cut,_=mca(g,spins.copy())
+        #     best_mca_cut=max(mca_cut,best_mca_cut)
         sg_cut,_=standard_greedy(g)
     
         tabu_cuts.append(best_tabu_cut)
