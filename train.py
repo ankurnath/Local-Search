@@ -65,7 +65,7 @@ def train_GNN(distribution,number_of_vertices,model):
                             'spin_basis':SpinBasis.BINARY,  # Set the spin basis to BINARY
                             'norm_rewards':True, # Normalize rewards (set to True)   
                             'stag_punishment':None, # Set stag punishment to None
-                            'basin_reward':basin_reward, # Assign the 'basin_reward' based on the previous condition
+                            'basin_reward':basin_reward[model], # Assign the 'basin_reward' based on the previous condition
                             'reversible_spins':reversible_spins[model]}
     
     

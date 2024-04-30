@@ -32,6 +32,7 @@ class OptimisationTarget(Enum):
 
     CUT = 1
     ENERGY = 2
+    COLOR = 3
 
 class SpinBasis(Enum):
 
@@ -150,6 +151,22 @@ class RandomBarabasiAlbertGraphGenerator(GraphGenerator):
         # No self-connections (this modifies adj in-place).
         np.fill_diagonal(adj, 0)
         return adj
+    
+class RandomRegularGraphGenerator(GraphGenerator):
+
+    def __init__(self, n_spins, d,edge_type):
+        super().__init__(n_spins, edge_type)
+
+        # self.m_insertion_edges = m_insertion_edges
+        self.d=d
+
+    def get(self):
+
+        n=self.get_spin()
+        g=nx.random_regular_graph(d=self.d,n=self.n_spins)
+        adj = np.multiply(nx.to_numpy_array(g), self.get_connection_mask(n))
+        np.fill_diagonal(adj, 0)
+        return adj
 
 
 class RandomWattsStrogatzGraphGenerator(GraphGenerator):
@@ -163,7 +180,7 @@ class RandomWattsStrogatzGraphGenerator(GraphGenerator):
         n=self.get_spin()
         g = nx.watts_strogatz_graph(n, self.k_neighbours, 0)
         adj = np.multiply(nx.to_numpy_array(g), self.get_connection_mask(n))
-
+        np.fill_diagonal(adj, 0)
 
         return adj
 
