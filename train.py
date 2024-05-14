@@ -7,6 +7,7 @@ import src.envs.core as ising_env
 from experiments.utils import  mk_dir
 from src.agents.dqn.dqn import DQN
 from src.agents.dqn.utils import TestMetric
+import torch
 from src.envs.utils import (GraphDataset,
                             RewardSignal, ExtraAction,
                             OptimisationTarget, SpinBasis,
@@ -17,7 +18,7 @@ from src.networks.models import MPNN,LinearRegression
 from collections import defaultdict
 
 
-def train_GNN(distribution,number_of_vertices,model):
+def train_GNN(distribution,number_of_vertices,model,device=None):
     with open('config.pkl', 'rb') as f:
         train_config = pickle.load(f)
     
@@ -189,7 +190,8 @@ def train_GNN(distribution,number_of_vertices,model):
                     test_save_path=test_save_path,
                     test_metric=TestMetric.MAX_CUT,
 
-                    seed=None
+                    seed=None,
+                    device=None
                     )
 
 
@@ -260,10 +262,25 @@ if __name__ == '__main__':
     parser.add_argument("--distribution", type=str, help="Distribution of dataset")
     parser.add_argument("--number_of_vertices", type=int, default=None, help="the number of nodes")
     parser.add_argument("--model", type=str, default=None, help="Model")
+    parser.add_argument("--device", type=int,default=None, help="cuda device")
+
 
     args = parser.parse_args()
+    num_devices = torch.cuda.device_count()
+    for i in range(num_devices):
+        device_name = torch.cuda.get_device_name(i)
+        print("CUDA Device {}: {}".format(i, device_name))
+
+    if torch.cuda.is_available():
+        if args.device is None:
+            device = 'cuda:0' 
+        else:
+            device=f'cuda:{args.device}
 
     # Accessing arguments using attribute notation, not dictionary notation
-    train_GNN(distribution=args.distribution, number_of_vertices=args.number_of_vertices, model=args.model)
+    train_GNN(distribution=args.distribution, 
+              number_of_vertices=args.number_of_vertices, 
+              model=args.model,
+              device=device)
 
 

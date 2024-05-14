@@ -139,10 +139,14 @@ class DQN:
 
         # Other
         logging=True,
-        seed=None
+        seed=None,
+        device=None
     ):
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device=device
         
 
         self.double_dqn = double_dqn
