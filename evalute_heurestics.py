@@ -192,7 +192,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--distribution", type=str, help="Distribution of dataset")
     parser.add_argument("--num_repeat", type=int,default=100, help="Distribution of dataset")
-    parser.add_argument("--gamma", type=int, default=105, help="Tabu Tenure")
+    parser.add_argument("--gamma", type=int, default=15, help="Tabu Tenure")
     args = parser.parse_args()
 
     save_folder=f'pretrained agents/{args.distribution}_heuristics/data'
@@ -224,12 +224,12 @@ if __name__ == '__main__':
         for _ in range(args.num_repeat):
             spins= np.random.randint(2, size=graph.shape[0])
             tabu_arguments.append((g,spins,args.gamma,graph.shape[0]*2))
-            mca_arguments.append((g,spins,args.gamma,graph.shape[0]*2))
+            mca_arguments.append((g,spins))
 
         with Pool() as pool:
             best_tabu_cut=np.max(pool.starmap(tabu, tabu_arguments))
         with Pool() as pool:
-            best_mca_cut=np.max(pool.starmap(tabu, mca_arguments))
+            best_mca_cut=np.max(pool.starmap(mca, mca_arguments))
         
         # for _ in range(args.num_repeat):
         #     spins= np.random.randint(2, size=graph.shape[0])
@@ -240,7 +240,8 @@ if __name__ == '__main__':
 
         #     mca_cut,_=mca(g,spins.copy())
         #     best_mca_cut=max(mca_cut,best_mca_cut)
-        sg_cut,_=standard_greedy(g)
+        # sg_cut,_=standard_greedy(g)
+        sg_cut=standard_greedy(g)
     
         tabu_cuts.append(best_tabu_cut)
         mca_cuts.append(best_mca_cut)
