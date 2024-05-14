@@ -270,17 +270,21 @@ if __name__ == '__main__':
     for i in range(num_devices):
         device_name = torch.cuda.get_device_name(i)
         print("CUDA Device {}: {}".format(i, device_name))
+    if True:
+        pass
 
     if torch.cuda.is_available():
         if args.device is None:
             device = 'cuda:0' 
         else:
-            device=f'cuda:{args.device}
+            # pass
+            device=f'cuda:{args.device}'
+
+
 
     # Accessing arguments using attribute notation, not dictionary notation
     train_GNN(distribution=args.distribution, 
               number_of_vertices=args.number_of_vertices, 
               model=args.model,
               device=device)
-
 
