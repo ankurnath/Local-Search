@@ -171,14 +171,32 @@ class RandomRegularGraphGenerator(GraphGenerator):
 
 class RandomWattsStrogatzGraphGenerator(GraphGenerator):
 
-    def __init__(self, n_spins=20, k_neighbours=[2,0], edge_type=EdgeType.DISCRETE, biased=False):
-        super().__init__(n_spins, edge_type, biased)
-        self.k_neighbours  = k_neighbours
-
+    def __init__(self,n_spins,k,p, edge_type):
+        super().__init__(n_spins, edge_type)
+        self.k  = k
+        self.p  = p
     def get(self):
         
         n=self.get_spin()
-        g = nx.watts_strogatz_graph(n, self.k_neighbours, 0)
+        
+        g= nx.watts_strogatz_graph(n=n, k=self.k, p=self.p)
+        adj = np.multiply(nx.to_numpy_array(g), self.get_connection_mask(n))
+        np.fill_diagonal(adj, 0)
+
+        return adj
+    
+class RandomHomleKimGraphGenerator(GraphGenerator):
+
+    def __init__(self,n_spins,m,p, edge_type):
+        super().__init__(n_spins, edge_type)
+        self.m  = m
+        self.p  = p
+    def get(self):
+        
+        n=self.get_spin()
+        
+        # g= nx.watts_strogatz_graph(n=n, k=self.k, p=self.p)
+        g=nx.powerlaw_cluster_graph(n=n, m=self.m, p=self.p)
         adj = np.multiply(nx.to_numpy_array(g), self.get_connection_mask(n))
         np.fill_diagonal(adj, 0)
 
