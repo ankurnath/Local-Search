@@ -1,6 +1,6 @@
 from cim_optimizer.solve_Ising import *
 from src.envs.utils import GraphDataset
-from cim_optimizer.CIM_helper import brute_force
+
 from cim_optimizer.solve_Ising import *
 import pickle
 import numpy as np
@@ -9,9 +9,6 @@ import matplotlib.pyplot as plt
 import torch
 import networkx as nx
 
-from cim_optimizer.optimal_params import maxcut_100_params
-from cim_optimizer.optimal_params import maxcut_200_params
-from cim_optimizer.optimal_params import maxcut_500_params
 
 from multiprocessing.pool import Pool
 
@@ -39,7 +36,7 @@ def solve(graph):
     # additional run information
     num_trials = 100
     # time_span = 25000
-    time_span = 1200
+    time_span = 12000
     nsub = 0.02
     num_parallel_runs=20
 
@@ -83,8 +80,8 @@ if __name__ == '__main__':
     # results={"Cut":[]}
     cuts=[]
 
-    # for _ in range(len(dataset)):
-    for _ in range(10):
+    for _ in range(len(dataset)):
+    # for _ in range(10):
         arguments.append((dataset.get(),))
 
     with Pool() as pool:
@@ -102,6 +99,3 @@ if __name__ == '__main__':
         df=pd.DataFrame(df)
         df.to_pickle(f'../data/testing/{args.distribution}/optimal')
         print(df)
-
-
-    # main()
