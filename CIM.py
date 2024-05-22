@@ -85,8 +85,7 @@ if __name__ == '__main__':
     spins=[]
 
 
-    # for _ in range(len(dataset)):
-    for _ in range(1):
+    for _ in range(len(dataset)):
         graph=dataset.get()
         cut,spin=solve(graph,hyperparameters)
         cuts.append(cut)
