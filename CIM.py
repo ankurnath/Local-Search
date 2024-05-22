@@ -21,90 +21,83 @@ def load_pickle(file_path):
       data = pickle.load(f)
   return data
 
+from cim_optimizer.optimal_params import maxcut_100_params
+from cim_optimizer.optimal_params import maxcut_200_params
+from cim_optimizer.optimal_params import maxcut_500_params
 
-def solve(graph):
-    # CAC hyperparameters
-    p= 0.9
-    alpha= 1.1
-    beta= 0.35
-    gamma= 0.0005
-    delta= 15
-    mu= 0.7
-    rho= 1
-    tau= 200
-    noise = 0.00
 
-    # additional run information
-    num_trials = 100
-    # time_span = 25000
-    time_span = 12000
-    nsub = 0.02
-    num_parallel_runs=20
+def solve(graph,hyperparameters):
+    
 
-    result = Ising(-graph).solve(num_runs = num_trials, 
-                                num_timesteps_per_run = time_span, 
-                                num_parallel_runs=num_parallel_runs, 
-                                return_spin_trajectories_all_runs=False,
-                                amplitude_control_scheme=False,
-                                cac_time_step=nsub, 
-                                cac_r=p, 
-                                cac_alpha=alpha, 
-                                cac_beta=beta, 
-                                cac_gamma=gamma, 
-                                cac_delta=delta,
-                                cac_mu=mu,
-                                cac_rho=rho,
-                                cac_tau=tau,
-                                suppress_statements = True,
-                                hyperparameters_autotune = True,
-                                hyperparameters_randomtune = False,
-                                use_GPU = True,
-                                use_CAC =True)
+    result=Ising(-graph).solve(hyperparameters_autotune=True,
+                           hyperparameters_randomtune=False,
+                           return_lowest_energies_found_spin_configuration=True,
+                           return_lowest_energy_found_from_each_run=False,
+                           return_spin_trajectories_all_runs=False,
+                           return_number_of_solutions=1,
+                           suppress_statements=True,
+                           **hyperparameters)
+
     
     spins=result.result['lowest_energy_spin_config']
     cut= (1/4) * np.sum( np.multiply(graph, 1 - np.outer(spins, spins) ) )
-    return cut
+    return cut,spins
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--distribution', type=str,default="WattsStrogatz_200vertices_unweighted",  help='Distribution of dataset')
+    parser.add_argument('--distribution', type=str,default="WattsStrogatz_200vertices_weighted",  help='Distribution of dataset')
     parser.add_argument('--pool', type=int,default=20,  help="Number of pools")
+    parser.add_argument("--device", type=int,default=None, help="cuda device")
+    parser.add_argument("--num_runs",type=int,default=100,help="Number of runs per instance")
+    parser.add_argument("--time_span",type=int,default=25000,help="Time span")
+    parser.add_argument("--num_parallel_runs",type=int,default=100,help="Number of parallel runs")
+    parser.add_argument("--model",type=str,default="CAC", help="Number of parallel runs")
+
     args = parser.parse_args()
-    arguments = []
+
+    hyperparameters=maxcut_200_params()
+    hyperparameters['num_runs']=args.num_runs
+    hyperparameters['num_timesteps_per_run']=  args.time_span
+    hyperparameters['num_parallel_runs']=  args.num_parallel_runs
+
+
+    if torch.cuda.is_available():
+        hyperparameters['use_GPU']=True
+        if args.device is None:
+            device = 'cuda:0' 
+        else:
+            device=f'cuda:{args.device}'
+    else:
+        device='cpu'
+
+    if args.model=='CAC':
+        hyperparameters['use_CAC']=True
+    elif args.model=='AHC':
+        hyperparameters['use_CAC']=False
+    else:
+        raise ValueError("Unknown options")
+
+        
     dataset=GraphDataset(folder_path=f'../data/testing/{args.distribution}',ordered=True)
     print ('Number of test graphs:',len(dataset))
-
-    try:
-        OPT = load_pickle(f'../data/testing/{args.distribution}/optimal', add_data_path=False)['OPT']
-    except:
-        OPT= None
-
-    # results={"Cut":[]}
+       
     cuts=[]
+    spins=[]
 
-    for _ in range(len(dataset)):
-        arguments.append((dataset.get(),))
 
-    with Pool(args.pool) as pool:
-        cuts=pool.starmap(solve, arguments)
-    # print(cuts)
-    df={'OPT':cuts}
+    # for _ in range(len(dataset)):
+    for _ in range(1):
+        graph=dataset.get()
+        cut,spin=solve(graph,hyperparameters)
+        cuts.append(cut)
+        spins.append(spin)
+
+
+    df={'cut':cuts,'Solution':spins}
     df=pd.DataFrame(df)
-    save_folder=f"data/testing/{args.distribution}"
+    print(df)
+    save_folder=f"pretrained agents/{args.distribution}_{args.model}/data"
     os.makedirs(save_folder,exist_ok=True)
-    file_name="optimal"
-    df.to_pickle(os.path.join(save_folder,file_name))
-    # print(df)
     
+    df.to_pickle(os.path.join(save_folder,'results'))
 
-    if OPT:
-        for i,best_cut in enumerate(cuts):
-            if best_cut>OPT.iloc[i]:
-                OPT.iloc[i]=best_cut
-        OPT=pd.DataFrame(OPT)
-        OPT.to_pickle(f'../data/testing/{args.distribution}/optimal')
-    else:
-        df={'OPT':cuts}
-        df=pd.DataFrame(df)
-        df.to_pickle(f'../data/testing/{args.distribution}/optimal')
-        print(df)

@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
 
 
-    results={'cut':tabu_cuts}
+    results={'cut':tabu_cuts,'tenure':[gamma]*len(tabu_cuts)}
     results=pd.DataFrame(results)
 
     save_folder=f'generalization/{args.train_distribution}_TS'
