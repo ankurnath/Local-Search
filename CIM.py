@@ -76,6 +76,7 @@ if __name__ == '__main__':
         hyperparameters['use_CAC']=False
     else:
         raise ValueError("Unknown options")
+    hyperparameters['chosen_device']=device
 
         
     dataset=GraphDataset(folder_path=f'../data/testing/{args.distribution}',ordered=True)
