@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 import networkx as nx
+import os
 
 
 from multiprocessing.pool import Pool
@@ -67,6 +68,7 @@ def solve(graph):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--distribution', type=str,default="WattsStrogatz_200vertices_unweighted",  help='Distribution of dataset')
+    parser.add_argument('--pool', type=int,default=20,  help="Number of pools")
     args = parser.parse_args()
     arguments = []
     dataset=GraphDataset(folder_path=f'../data/testing/{args.distribution}',ordered=True)
@@ -81,12 +83,19 @@ if __name__ == '__main__':
     cuts=[]
 
     for _ in range(len(dataset)):
-    # for _ in range(10):
         arguments.append((dataset.get(),))
 
-    with Pool() as pool:
+    with Pool(args.pool) as pool:
         cuts=pool.starmap(solve, arguments)
-    print(cuts)
+    # print(cuts)
+    df={'OPT':cuts}
+    df=pd.DataFrame(df)
+    save_folder=f"data/testing/{args.distribution}"
+    os.makedirs(save_folder,exist_ok=True)
+    file_name="optimal"
+    df.to_pickle(os.path.join(save_folder,file_name))
+    # print(df)
+    
 
     if OPT:
         for i,best_cut in enumerate(cuts):
