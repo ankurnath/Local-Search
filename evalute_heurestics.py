@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
 
     parser.add_argument("--distribution", type=str, help="Distribution of dataset")
-    parser.add_argument("--num_repeat", type=int,default=100, help="Distribution of dataset")
+    parser.add_argument("--num_repeat", type=int,default=50, help="Distribution of dataset")
     parser.add_argument("--gamma", type=int, default=15, help="Tabu Tenure")
     args = parser.parse_args()
 
